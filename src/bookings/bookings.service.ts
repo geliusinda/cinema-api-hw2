@@ -76,14 +76,13 @@ export class BookingsService {
     if (totalPrice > 2_147_483_647) {
       throw new BadRequestException('totalPrice exceeds integer range');
     }
-    // A consistent insert order prevents competing bookings from locking seats in reverse order.
-    const ordered = [...seats].sort((a, b) => a.row - b.row || a.seat - b.seat);
+    const seatsInLockOrder = [...seats].sort((a, b) => a.row - b.row || a.seat - b.seat);
     try {
       return await this.dataSource.transaction(async (manager) => {
         const booking = await manager.save(Booking, { showingId, totalPrice });
         await manager.insert(
           BookingSeat,
-          ordered.map(({ row, seat }) => ({
+          seatsInLockOrder.map(({ row, seat }) => ({
             bookingId: booking.id,
             showingId,
             row,
